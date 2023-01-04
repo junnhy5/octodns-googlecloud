@@ -175,16 +175,13 @@ class GoogleCloudProvider(BaseProvider):
         gcloud_iterator = gcloud_zone.list_resource_record_sets(
             page_token=page_token
         )
-        for gcloud_record in gcloud_iterator:
-            yield gcloud_record
+        yield from gcloud_iterator
         # This is to get results which may be on a "paged" page.
         # (if more than max_results) entries.
         if gcloud_iterator.next_page_token:
-            for gcloud_record in self._get_gcloud_records(
+            yield from self._get_gcloud_records(
                 gcloud_zone, gcloud_iterator.next_page_token
-            ):
-                # yield from is in python 3 only.
-                yield gcloud_record
+            )
 
     def _get_cloud_zones(self, page_token=None):
         """Load all ManagedZones into the self._gcloud_zones dict which is
@@ -229,9 +226,7 @@ class GoogleCloudProvider(BaseProvider):
         exists = False
         before = len(zone.records)
 
-        gcloud_zone = self.gcloud_zones.get(zone.name)
-
-        if gcloud_zone:
+        if gcloud_zone := self.gcloud_zones.get(zone.name):
             exists = True
             for gcloud_record in self._get_gcloud_records(gcloud_zone):
                 if gcloud_record.record_type.upper() not in self.SUPPORTS:
