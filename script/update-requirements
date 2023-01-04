@@ -19,7 +19,7 @@ with open('setup.py') as fh:
     match = re.search(r"name='(?P<pkg>[\w-]+)',", fh.read())
     if not match:
         raise Exception('failed to determine our package name')
-    our_package_name = match.group('pkg')
+    our_package_name = match['pkg']
     print(f'our_package_name: {our_package_name}')
 
 with TemporaryDirectory() as tmpdir:

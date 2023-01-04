@@ -12,12 +12,11 @@ from octodns.record import Create, Delete, Update, Record
 from octodns_googlecloud import GoogleCloudProvider, _batched_iterator
 
 zone = Zone(name='unit.tests.', sub_zones=[])
-octo_records = []
-octo_records.append(
+octo_records = [
     Record.new(
         zone, '', {'ttl': 0, 'type': 'A', 'values': ['1.2.3.4', '10.10.10.10']}
     )
-)
+]
 octo_records.append(
     Record.new(
         zone, 'a', {'ttl': 1, 'type': 'A', 'values': ['1.2.3.4', '1.1.1.1']}
@@ -298,6 +297,7 @@ class TestGoogleCloudProvider(TestCase):
     @patch('octodns_googlecloud.time.sleep')
     @patch('octodns_googlecloud.dns')
     def test__apply(self, *_):
+
         class DummyDesired:
             def __init__(self, name, changes):
                 self.name = self.decoded_name = name
@@ -335,10 +335,13 @@ class TestGoogleCloudProvider(TestCase):
         desired = Mock()
         desired.name = "unit.tests."
         changes = []
-        changes.append(Create(create_r))
-        changes.append(Delete(delete_r))
-        changes.append(Update(existing=update_existing_r, new=update_new_r))
-
+        changes.extend(
+            (
+                Create(create_r),
+                Delete(delete_r),
+                Update(existing=update_existing_r, new=update_new_r),
+            )
+        )
         provider.apply(
             Plan(
                 existing=[update_existing_r, delete_r],
@@ -349,10 +352,9 @@ class TestGoogleCloudProvider(TestCase):
         )
 
         calls_mock = gcloud_zone_mock.changes.return_value
-        mocked_calls = []
-        for mock_call in calls_mock.add_record_set.mock_calls:
-            mocked_calls.append(mock_call[1][0])
-
+        mocked_calls = [
+            mock_call[1][0] for mock_call in calls_mock.add_record_set.mock_calls
+        ]
         self.assertEqual(
             mocked_calls,
             [
@@ -363,10 +365,10 @@ class TestGoogleCloudProvider(TestCase):
             ],
         )
 
-        mocked_calls2 = []
-        for mock_call in calls_mock.delete_record_set.mock_calls:
-            mocked_calls2.append(mock_call[1][0])
-
+        mocked_calls2 = [
+            mock_call[1][0]
+            for mock_call in calls_mock.delete_record_set.mock_calls
+        ]
         self.assertEqual(
             mocked_calls2,
             [
@@ -582,21 +584,21 @@ class TestBatchedIterator(TestCase):
         i = _batched_iterator(range(999), 1000)
         a = next(i)
         self.assertEqual(999, len(a))
-        self.assertEqual(range(0, 999), a)
+        self.assertEqual(range(999), a)
         with self.assertRaises(StopIteration):
             next(i)
 
         i = _batched_iterator(range(1000), 1000)
         a = next(i)
         self.assertEqual(1000, len(a))
-        self.assertEqual(range(0, 1000), a)
+        self.assertEqual(range(1000), a)
         with self.assertRaises(StopIteration):
             next(i)
 
         i = _batched_iterator(range(1001), 1000)
         a = next(i)
         self.assertEqual(1000, len(a))
-        self.assertEqual(range(0, 1000), a)
+        self.assertEqual(range(1000), a)
         b = next(i)
         self.assertEqual(1, len(b))
         self.assertEqual(range(1000, 1001), b)
@@ -605,7 +607,7 @@ class TestBatchedIterator(TestCase):
 
         a, b, c = _batched_iterator(range(2048), 1000)
         self.assertEqual(1000, len(a))
-        self.assertEqual(range(0, 1000), a)
+        self.assertEqual(range(1000), a)
         self.assertEqual(1000, len(b))
         self.assertEqual(range(1000, 2000), b)
         self.assertEqual(48, len(c))
